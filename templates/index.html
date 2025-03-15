@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交通流量预测系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#818CF8'
+                    },
+                    borderRadius: {
+                        'none': '0px',
+                        'sm': '2px',
+                        DEFAULT: '4px',
+                        'md': '8px',
+                        'lg': '12px',
+                        'xl': '16px',
+                        '2xl': '20px',
+                        '3xl': '24px',
+                        'full': '9999px',
+                        'button': '4px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .wrapper {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+        
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(135deg, #4F46E5 0%, #818CF8 100%);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 999;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+            font-family: 'Pacifico', cursive;
+        }
+        
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+        
+        .sidebar-menu a {
+            display: block;
+            padding: 15px 20px;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 1rem;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-menu a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left: 3px solid white;
+        }
+        
+        .sidebar-menu a.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-left: 3px solid white;
+        }
+        
+        .sidebar-menu a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* 主内容区域样式 */
+        .content {
+            width: calc(100% - 250px);
+            margin-left: 250px;
+            padding: 30px;
+            transition: all 0.3s;
+        }
+        
+        .content-header {
+            margin-bottom: 30px;
+        }
+        
+        .content-header h1 {
+            font-weight: 700;
+            color: #4F46E5;
+            margin-bottom: 10px;
+            font-family: 'Pacifico', cursive;
+        }
+        
+        /* 卡片样式 */
+        .card {
+            background-color: white;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            font-weight: 600;
+            color: #4F46E5;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* 按钮样式 */
+        .btn-primary {
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #818CF8;
+        }
+        
+        /* 图表容器 */
+        .chart-container {
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        
+        /* 结果卡片 */
+        .result-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        
+        .result-card h3 {
+            color: #4F46E5;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .result-card ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .result-card li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .result-card li:last-child {
+            border-bottom: none;
+        }
+        
+        .badge {
+            background-color: #4F46E5;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- 侧边栏 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>交通流量预测</h3>
+            </div>
+            
+            <div class="sidebar-menu">
+                <a href="{{ url_for('index') }}" class="active">
+                    <i class="fas fa-home"></i> 首页
+                </a>
+                {% if session.get('username') and session.get('role') == 'admin' %}
+                    <a href="{{ url_for('manage_users') }}">
+                        <i class="fas fa-users"></i> 用户管理
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </a>
+            </div>
+        </nav>
+        
+        <!-- 主内容 -->
+        <div class="content">
+            <div class="content-header">
+                <h1>交通流量预测系统</h1>
+                <p class="text-gray-600">欢迎回来，{{ session.get('username') }}! 使用下面的参数进行预测。</p>
+            </div>
+
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong class="font-bold">错误：</strong>
+                <span class="block sm:inline">{{ error }}</span>
+            </div>
+            {% endif %}
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <span class="block sm:inline">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- 参数设置 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-cogs me-2"></i> 参数设置
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h5 class="font-semibold text-gray-700 mb-3">模型参数</h5>
+                            <div class="space-y-2">
+                                <div class="list-group-item">
+                                    <span><i class="fas fa-brain mr-2"></i> 模型</span>
+                                    <span class="badge">{{ params.models | join(', ') }}</span>
+                                </div>
+                                <div class="list-group-item">
+                                    <span><i class="fas fa-history mr-2"></i> 时间滞后</span>
+                                    <span class="badge">{{ params.lag }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold text-gray-700 mb-3">数据文件</h5>
+                            <div class="space-y-2">
+                                <div class="list-group-item">
+                                    <span><i class="fas fa-file-alt mr-2"></i> 训练文件</span>
+                                    <span class="badge bg-secondary">{{ params.train_file }}</span>
+                                </div>
+                                <div class="list-group-item">
+                                    <span><i class="fas fa-file-alt mr-2"></i> 测试文件</span>
+                                    <span class="badge bg-secondary">{{ params.test_file }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <form method="POST" class="mt-6">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-play mr-2"></i> 运行预测
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 预测结果 -->
+            {% if y_true %}
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-chart-line mr-2"></i> 预测结果</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {% for name, result in zip(params.models, evaluation_results) %}
+                        <div>
+                            <div class="result-card">
+                                <h3>{{ name }} 模型</h3>
+                                <ul>
+                                    <li><strong>解释方差分数:</strong> {{ result.explained_variance_score | round(4) }}</li>
+                                    <li><strong>MAPE:</strong> {{ result.mape | round(4) }}%</li>
+                                    <li><strong>MAE:</strong> {{ result.mae | round(4) }}</li>
+                                    <li><strong>MSE:</strong> {{ result.mse | round(4) }}</li>
+                                    <li><strong>RMSE:</strong> {{ result.rmse | round(4) }}</li>
+                                    <li><strong>R2:</strong> {{ result.r2 | round(4) }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- 图表 -->
+                {% for name in params.models %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-chart-line mr-2"></i> {{ name }} 预测图表
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="chart-{{ loop.index }}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const y_true = {{ y_true | tojson if y_true else '[]' }};
+                        const y_preds = {{ y_preds | tojson if y_preds else '[]' }};
+                        const modelNames = {{ params.models | tojson }};
+                        
+                        modelNames.forEach((name, index) => {
+                            const ctx = document.getElementById(`chart-${index + 1}`).getContext('2d');
+                            new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: Array.from({length: y_true.length}, (_, i) => `时间点 ${i+1}`),
+                                    datasets: [
+                                        {
+                                            label: '实际数据',
+                                            data: y_true,
+                                            borderColor: '#28a745',
+                                            fill: false
+                                        },
+                                        {
+                                            label: name,
+                                            data: y_preds[index],
+                                            borderColor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+                                            fill: false
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    plugins: {
+                                        title: {
+                                            display: true,
+                                            text: `${name} 模型预测结果`
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    });
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

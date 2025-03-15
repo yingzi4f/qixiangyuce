@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Epidemic prediction</title>
+    <!-- 本地引入 Bootstrap CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- 本地引入 ECharts -->
+    <script src="{{ url_for('static', filename='js/echarts.min.js') }}"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .chart-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .form-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .result-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        h1 {
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Community Epidemic prediction</h1>
+        <div class="form-container">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="prov_shortname" class="form-label">Province Short Name:</label>
+                    <input type="text" class="form-control" id="prov_shortname" name="prov_shortname" value="湖北" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="cityname" class="form-label">City Name:</label>
+                    <input type="text" class="form-control" id="cityname" name="cityname" value="武汉" readonly>
+                </div>
+                <div class="mb-3">
+                    <label for="n" class="form-label">Days to Predict:</label>
+                    <input type="number" class="form-control" id="n" name="n" value="7" readonly>
+                </div>
+                <button type="submit" class="btn btn-primary">Predict</button>
+            </form>
+        </div>
+
+        {% if chart_data %}
+            <div class="result-container">
+                <h2>Prediction Results</h2>
+                <p><strong>Infected Error Rate:</strong> {{ chart_data.i_error }}</p>
+                <p><strong>Removed Error Rate:</strong> {{ chart_data.r_error }}</p>
+                <p><strong>Basic Reproduction Number (R0):</strong> {{ chart_data.R0 }}</p>
+            </div>
+
+            <div class="chart-container">
+                <div id="chart" style="width: 100%; height: 400px;"></div>
+            </div>
+
+            <script type="text/javascript">
+                var chart = echarts.init(document.getElementById('chart'));
+
+                var option = {
+                    title: {
+                        text: 'Prediction vs Actual',
+                        left: 'center',
+                        textStyle: {
+                            color: '#343a40',
+                            fontSize: 18
+                        }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'line'
+                        }
+                    },
+                    legend: {
+                        data: ['Predicted Infected', 'Actual Infected'],
+                        bottom: 10,
+                        textStyle: {
+                            color: '#343a40'
+                        }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: {{ chart_data.time_labels | tojson }},
+                        axisLabel: {
+                            color: '#6c757d'
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#6c757d'
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            color: '#6c757d'
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#6c757d'
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: '#e9ecef'
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: 'Predicted Infected',
+                            type: 'line',
+                            data: {{ chart_data.predicted_infected | tojson }},
+                            itemStyle: {
+                                color: '#007bff'
+                            },
+                            lineStyle: {
+                                width: 3
+                            }
+                        },
+                        {
+                            name: 'Actual Infected',
+                            type: 'line',
+                            data: {{ chart_data.actual_infected | tojson }},
+                            itemStyle: {
+                                color: '#28a745'
+                            },
+                            lineStyle: {
+                                width: 3
+                            }
+                        }
+                    ]
+                };
+
+                chart.setOption(option);
+            </script>
+        {% endif %}
+    </div>
+
+    <!-- 本地引入 Bootstrap JS -->
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
